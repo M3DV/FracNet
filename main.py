@@ -1,6 +1,5 @@
 import os
-os.chdir('/home/randy/workspace/RibFrac')
-os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3"
 
 from fastai import *
 from fastai.basics import *
@@ -33,16 +32,16 @@ class PNSampler(Sampler):
 
 
 def read_info(path, phase):
-    df = pd.read_csv(Path(path, f'seg.csv'))
-    df = pd.concat([x[1] for x in df.groupby('neg')])
-    if phase == 'train':
-        df = df[(df['subset'] == 0) | (df['subset'] == 3)]
+    df = pd.read_csv(Path(path, f"seg.csv"))
+    df = pd.concat([x[1] for x in df.groupby("neg")])
+    if phase == "train":
+        df = df[(df["subset"] == 0) | (df["subset"] == 3)]
     else:
-        df = df[(df['subset'] == 1) | (df['subset'] == 2)]
-    df[['shape', 'center']] = df[['shape', 'center']]\
-        .apply(lambda x: x.apply(lambda y: eval(y)))
-    df[['image', 'label' ]] = df[['image', 'label' ]]\
-        .apply(lambda x: x.apply(lambda y: Path(path, f'{x.name}s', y)))
+        df = df[(df["subset"] == 1) | (df["subset"] == 2)]
+    df[["shape", "center"]] = df[["shape", "center"]]\
+        .apply(lambda x: x.apply(eval))
+    df[["image", "label"]] = df[["image", "label"]]\
+        .apply(lambda x: x.apply(lambda y: Path(path, f"{x.name}s", y)))
     return df.reset_index(drop=True)
 
 
@@ -52,14 +51,18 @@ def checkpoint(root, time):
         def wrapper(*args, **kwargs):
             path = Path(root, time)
             path.mkdir(parents=True, exist_ok=True)
-            kwargs['root'] = path
+            kwargs["root"] = path
             return callback(*args, **kwargs)
         return wrapper
     return decorator
 
 
-if __name__ == "__main__":
-    bsize = 96
+def main(args):
+    global dice, recall, precision, fbeta_score
+
+    data_dir = args.data_dir
+
+    batch_size = 96
     workers = 4
     optimizer = optim.SGD
     criterion = MixLoss(nn.BCEWithLogitsLoss(), 0.5, DiceLoss(), 1)
@@ -73,20 +76,20 @@ if __name__ == "__main__":
     model = nn.DataParallel(model.cuda())
 
     dataset = {x: RibFracDataset(
-        read_info('/mnt/data3/RibFrac/96x96x96', x),
-        crop={'size': 64, 'scale': 0.5}\
-            if x == 'train' else {'size': 64, 'scale': 0},
-        flip=True if x == 'train' else False
-    ) for x in ['train', 'val']}
+        read_info(data_dir, x),
+        crop={"size": 64, "scale": 0.5} if x == "train"\
+            else {"size": 64, "scale": 0},
+        flip=(x == "train")
+    ) for x in ["train", "val"]}
 
     databunch = DataBunch(*[DataLoader(
         dataset[x],
-        batch_size=bsize,
+        batch_size=batch_size,
         sampler=PNSampler(dataset[x]),
         num_workers=workers,
         pin_memory=True,
         drop_last=False
-    ) for x in ['train', 'val']])
+    ) for x in ["train", "val"]])
 
     learn = Learner(
         databunch,
@@ -105,3 +108,15 @@ if __name__ == "__main__":
             ShowGraph(learn),
         ]
     )
+
+
+if __name__ == "__main__":
+    import argparse
+
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_dir", type=str, required=True,
+        help="The cropped .npz directory.")
+    args = parser.parse_args()
+
+    main(args)
