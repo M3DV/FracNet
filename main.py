@@ -57,10 +57,6 @@ def checkpoint(root, time):
     return decorator
 
 
-def test():
-    print(recall)
-
-
 def main(args):
     data_dir = args.data_dir
 
