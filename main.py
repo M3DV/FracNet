@@ -57,9 +57,11 @@ def checkpoint(root, time):
     return decorator
 
 
-def main(args):
-    global dice, recall, precision, fbeta_score
+def test():
+    print(recall)
 
+
+def main(args):
     data_dir = args.data_dir
 
     batch_size = 96
@@ -68,9 +70,9 @@ def main(args):
     criterion = MixLoss(nn.BCEWithLogitsLoss(), 0.5, DiceLoss(), 1)
 
     thresh = 0.1
-    recall = partial(recall, thresh=thresh)
-    precision = partial(precision, thresh=thresh)
-    fbeta_score = partial(fbeta_score, thresh=thresh)
+    recall_partial = partial(recall, thresh=thresh)
+    precision_partial = partial(precision, thresh=thresh)
+    fbeta_score_partial = partial(fbeta_score, thresh=thresh)
 
     model = UNet(1, 1, n=16)
     model = nn.DataParallel(model.cuda())
@@ -96,7 +98,7 @@ def main(args):
         model,
         opt_func=optimizer,
         loss_func=criterion,
-        metrics=[dice, recall, precision, fbeta_score]
+        metrics=[dice, recall_partial, precision_partial, fbeta_score_partial]
     )
 
     learn.fit_one_cycle(
