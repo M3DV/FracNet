@@ -1,8 +1,4 @@
 from fastai.basics import *
-# from torch.utils.data import Dataset
-
-
-__all__ = ['RibFrac']
 
 
 class RibFracDataset(Dataset):
