@@ -1,13 +1,22 @@
+import functools
 import os
+import random
+from functools import partial, reduce
+from pathlib import Path
 os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3"
 
-from fastai import *
-from fastai.basics import *
-from fastai.callback import *
+import pandas as pd
+import torch.nn as nn
+from fastai.basic_train import Learner
+from fastai.train import ShowGraph
+from fastai.data_block import DataBunch
+from torch import optim
+from torch.utils.data import DataLoader, Sampler
 
-from dataset import RibFracDataset
-from utils import dice, recall, precision, fbeta_score
-from models import UNet, MixLoss, DiceLoss
+from dataset.fracnet_dataset import FracNetDataset
+from utils.metrics import dice, recall, precision, fbeta_score
+from model.unet import UNet
+from model.losses import MixLoss, DiceLoss
 
 
 class PNSampler(Sampler):
@@ -32,7 +41,7 @@ class PNSampler(Sampler):
 
 
 def read_info(path, phase):
-    df = pd.read_csv(Path(path, f"seg.csv"))
+    df = pd.read_csv(Path(path, "seg.csv"))
     df = pd.concat([x[1] for x in df.groupby("neg")])
     if phase == "train":
         df = df[(df["subset"] == 0) | (df["subset"] == 3)]
@@ -43,18 +52,6 @@ def read_info(path, phase):
     df[["image", "label"]] = df[["image", "label"]]\
         .apply(lambda x: x.apply(lambda y: Path(path, f"{x.name}s", y)))
     return df.reset_index(drop=True)
-
-
-def checkpoint(root, time):
-    def decorator(callback):
-        @functools.wraps(callback)
-        def wrapper(*args, **kwargs):
-            path = Path(root, time)
-            path.mkdir(parents=True, exist_ok=True)
-            kwargs["root"] = path
-            return callback(*args, **kwargs)
-        return wrapper
-    return decorator
 
 
 def main(args):
@@ -73,7 +70,7 @@ def main(args):
     model = UNet(1, 1, n=16)
     model = nn.DataParallel(model.cuda())
 
-    dataset = {x: RibFracDataset(
+    dataset = {x: FracNetDataset(
         read_info(data_dir, x),
         crop={"size": 64, "scale": 0.5} if x == "train"\
             else {"size": 64, "scale": 0},
