@@ -20,6 +20,7 @@ from model.losses import MixLoss, DiceLoss
 
 
 class PNSampler(Sampler):
+
     def __init__(self, dataset):
         self.dataset = dataset
 
