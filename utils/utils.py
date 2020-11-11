@@ -1,5 +1,6 @@
+from pathlib import Path
+
 import SimpleITK as sitk
-from fastai.basics import *
 
 
 def imread(path):

@@ -1,4 +1,8 @@
-from fastai.basics import *
+from functools import reduce
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 __all__ = ['MixLoss', 'DiceLoss', 'GHMCLoss', 'FocalLoss']

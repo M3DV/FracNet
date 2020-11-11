@@ -1,8 +1,9 @@
-from fastai.basics import *
-# from torch.utils.data import Dataset
+from itertools import product
 
-
-__all__ = ['Slicer', 'Predictor']
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset
+from fastprogress.fastprogress import progress_bar
 
 
 class Slicer(Dataset):
@@ -42,7 +43,7 @@ class Slicer(Dataset):
         '''image: (C, D, H, W) '''
         shape = image.shape[1:]
         coord = [list(range(0, x, y // 2))[1:-1] + [x - y // 2] for x, y in zip(shape, size)]
-        coord = [x for x in itertools.product(*coord)]
+        coord = list(product(*coord))
 
         return coord
 

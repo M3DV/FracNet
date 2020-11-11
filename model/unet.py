@@ -1,7 +1,4 @@
-from fastai.basics import *
-
-
-__all__ = ['UNet']
+import torch.nn as nn
 
 
 class UNet(nn.Module):
