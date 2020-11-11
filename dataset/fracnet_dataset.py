@@ -167,6 +167,9 @@ class FracNetNiiDataset(Dataset):
                 for x, y in zip(label_arr.shape, self.crop_size)]
             roi_centroids = list(product(*roi_centroids))
 
+        roi_centroids = [tuple([int(x) for x in centroid])
+            for centroid in roi_centroids]
+
         return roi_centroids
 
     def _crop_roi(self, arr, centroid):
@@ -236,6 +239,6 @@ class FracNetNiiDataset(Dataset):
         return image_rois, label_rois
 
     @staticmethod
-    def get_dataloader(dataset, batch_size, shuffle=False,
-            collate_fn=FracNetNiiDataset.collate_fn):
-        return DataLoader(dataset, batch_size, shuffle, collate_fn=collate_fn)
+    def get_dataloader(dataset, batch_size, shuffle=False):
+        return DataLoader(dataset, batch_size, shuffle,
+            collate_fn=FracNetNiiDataset.collate_fn)
