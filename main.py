@@ -1,65 +1,29 @@
-import functools
 import os
-import random
-from functools import partial, reduce
-from pathlib import Path
+from functools import partial
 os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3"
 
-import pandas as pd
 import torch.nn as nn
 from fastai.basic_train import Learner
 from fastai.train import ShowGraph
 from fastai.data_block import DataBunch
+from matplotlib import pyplot as plt
 from torch import optim
-from torch.utils.data import DataLoader, Sampler
 
-from dataset.fracnet_dataset import FracNetDataset
+from dataset.fracnet_dataset import FracNetNiiDataset
+from dataset import transforms as tsfm
 from utils.metrics import dice, recall, precision, fbeta_score
 from model.unet import UNet
 from model.losses import MixLoss, DiceLoss
 
 
-class PNSampler(Sampler):
-
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def __iter__(self):
-        n = len(self.dataset)
-        ix = random.sample(range(n), n)
-        pix, nix = [], []
-        for i in ix:
-            if i < n // 2:
-                pix.append(i)
-            else:
-                nix.append(i)
-        ix = zip(pix, nix, random.sample(pix, len(pix)))
-        ix = iter(reduce(lambda x, y: x + list(y), ix, []))
-        return ix
-
-    def __len__(self):
-        return len(self.dataset)
-
-
-def read_info(path, phase):
-    df = pd.read_csv(Path(path, "seg.csv"))
-    df = pd.concat([x[1] for x in df.groupby("neg")])
-    if phase == "train":
-        df = df[(df["subset"] == 0) | (df["subset"] == 3)]
-    else:
-        df = df[(df["subset"] == 1) | (df["subset"] == 2)]
-    df[["shape", "center"]] = df[["shape", "center"]]\
-        .apply(lambda x: x.apply(eval))
-    df[["image", "label"]] = df[["image", "label"]]\
-        .apply(lambda x: x.apply(lambda y: Path(path, f"{x.name}s", y)))
-    return df.reset_index(drop=True)
-
-
 def main(args):
-    data_dir = args.data_dir
+    train_image_dir = args.train_image_dir
+    train_label_dir = args.train_label_dir
+    val_image_dir = args.val_image_dir
+    val_label_dir = args.val_label_dir
 
-    batch_size = 96
-    workers = 4
+    batch_size = 4
+    num_workers = 4
     optimizer = optim.SGD
     criterion = MixLoss(nn.BCEWithLogitsLoss(), 0.5, DiceLoss(), 1)
 
@@ -71,21 +35,21 @@ def main(args):
     model = UNet(1, 1, n=16)
     model = nn.DataParallel(model.cuda())
 
-    dataset = {x: FracNetDataset(
-        read_info(data_dir, x),
-        crop={"size": 64, "scale": 0.5} if x == "train"\
-            else {"size": 64, "scale": 0},
-        flip=(x == "train")
-    ) for x in ["train", "val"]}
+    transforms = [
+        tsfm.Window(-200, 1000),
+        tsfm.MinMaxNorm(-200, 1000)
+    ]
+    ds_train = FracNetNiiDataset(train_image_dir, train_label_dir,
+        transforms=transforms)
+    dl_train = FracNetNiiDataset.get_dataloader(ds_train, batch_size, False,
+        num_workers)
+    ds_val = FracNetNiiDataset(val_image_dir, val_label_dir,
+        transforms=transforms)
+    dl_val = FracNetNiiDataset.get_dataloader(ds_val, batch_size, False,
+        num_workers)
 
-    databunch = DataBunch(*[DataLoader(
-        dataset[x],
-        batch_size=batch_size,
-        sampler=PNSampler(dataset[x]),
-        num_workers=workers,
-        pin_memory=True,
-        drop_last=False
-    ) for x in ["train", "val"]])
+    databunch = DataBunch(dl_train, dl_val,
+        collate_fn=FracNetNiiDataset.collate_fn)
 
     learn = Learner(
         databunch,
@@ -111,8 +75,18 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, required=True,
-        help="The cropped .npz directory.")
+    # parser.add_argument("--train_image_dir", required=True,
+    #     help="The training image nii directory.")
+    # parser.add_argument("--train_label_dir", required=True,
+    #     help="The training label nii directory.")
+    # parser.add_argument("--val_image_dir", required=True,
+    #     help="The validation image nii directory.")
+    # parser.add_argument("--val_label_dir", required=True,
+    #     help="The validation label nii directory.")
     args = parser.parse_args()
+    args.train_image_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-images"
+    args.train_label_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-labels"
+    args.val_image_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-images"
+    args.val_label_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-labels"
 
     main(args)
