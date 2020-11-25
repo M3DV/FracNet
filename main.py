@@ -75,18 +75,14 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--train_image_dir", required=True,
-    #     help="The training image nii directory.")
-    # parser.add_argument("--train_label_dir", required=True,
-    #     help="The training label nii directory.")
-    # parser.add_argument("--val_image_dir", required=True,
-    #     help="The validation image nii directory.")
-    # parser.add_argument("--val_label_dir", required=True,
-    #     help="The validation label nii directory.")
+    parser.add_argument("--train_image_dir", required=True,
+        help="The training image nii directory.")
+    parser.add_argument("--train_label_dir", required=True,
+        help="The training label nii directory.")
+    parser.add_argument("--val_image_dir", required=True,
+        help="The validation image nii directory.")
+    parser.add_argument("--val_label_dir", required=True,
+        help="The validation label nii directory.")
     args = parser.parse_args()
-    args.train_image_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-images"
-    args.train_label_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-labels"
-    args.val_image_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-images"
-    args.val_label_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-labels"
 
     main(args)
