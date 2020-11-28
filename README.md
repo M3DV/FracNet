@@ -1,5 +1,4 @@
 # FracNet
-A deep learning segmentation model for rib fracture detection.
 
 ## Abstract
 *Background*: Diagnosis of rib fractures plays an important role in identifying trauma severity. However, quickly and precisely identifying the rib fractures in a large number of CT images with increasing number of patients is a tough task, which is also subject to the qualification of radiologist. We aim at a clinically applicable automatic system for rib fracture detection and segmentation from CT scans.
@@ -39,7 +38,7 @@ tqdm==4.38.0
 ## Usage
 
 ### Download the Dataset
-We collect a large-scale rib fracture CT dataset, named [RibFrac Dataset](https://doi.org/10.5281/zenodo.3893508), as a benchmark for developping algorithms on rib fracture detection, segmentation and classification. You may download the dataset via [RibFrac Challenge](https://ribfrac.grand-challenge.org/dataset/) website.
+We collect a large-scale rib fracture CT dataset, named RibFrac Dataset as a benchmark for developping algorithms on rib fracture detection, segmentation and classification. You may access the public part of RibFrac dataset via [RibFrac Challenge](https://ribfrac.grand-challenge.org/dataset/) website, which was an official MICCAI 2020 challenge.
 
 ### Training
 To train the FracNet model, run the following in command line:
