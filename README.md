@@ -65,6 +65,12 @@ To train the FracNet model, run the following in command line:
 python main.py --train_image_dir <training_image_directory> --train_label_dir <training_label_directory> --val_image_dir <validation_image_directory> --val_label_dir <validation_label_directory>
 ```
 
+### Prediction
+To generate prediction, run the following in command line:
+```bash
+python predict.py --image_dir <image_directory> --pred_dir <predition_directory> --model_path <model_weight_path>
+```
+
 ### Evaluation
 To evaluate your prediction, run the following in command line:
 ```bash
