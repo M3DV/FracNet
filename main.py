@@ -39,17 +39,17 @@ def main(args):
         tsfm.Window(-200, 1000),
         tsfm.MinMaxNorm(-200, 1000)
     ]
-    ds_train = FracNetNiiDataset(train_image_dir, train_label_dir,
+    ds_train = FracNetTrainDataset(train_image_dir, train_label_dir,
         transforms=transforms)
-    dl_train = FracNetNiiDataset.get_dataloader(ds_train, batch_size, False,
+    dl_train = FracNetTrainDataset.get_dataloader(ds_train, batch_size, False,
         num_workers)
-    ds_val = FracNetNiiDataset(val_image_dir, val_label_dir,
+    ds_val = FracNetTrainDataset(val_image_dir, val_label_dir,
         transforms=transforms)
-    dl_val = FracNetNiiDataset.get_dataloader(ds_val, batch_size, False,
+    dl_val = FracNetTrainDataset.get_dataloader(ds_val, batch_size, False,
         num_workers)
 
     databunch = DataBunch(dl_train, dl_val,
-        collate_fn=FracNetNiiDataset.collate_fn)
+        collate_fn=FracNetTrainDataset.collate_fn)
 
     learn = Learner(
         databunch,

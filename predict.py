@@ -4,6 +4,7 @@ import nibabel as nib
 import numpy as np
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 
 from dataset.fracnet_dataset import FracNetInferenceDataset
 from dataset import transforms as tsfm
@@ -11,13 +12,13 @@ from model.unet import UNet
 
 
 def _predict_single_image(model, dataloader):
-    pred = np.zeros_like(dataloader.dataset.image.shape)
+    pred = np.zeros(dataloader.dataset.image.shape)
     crop_size = dataloader.dataset.crop_size
     with torch.no_grad():
         for _, sample in enumerate(dataloader):
             images, centers = sample
             images = images.cuda()
-            output = model(images).sigmoid().cpu().numpy()
+            output = model(images).sigmoid().cpu().numpy().squeeze(axis=1)
 
             for i in range(len(centers)):
                 center_z, center_y, center_x = centers[i]
@@ -36,7 +37,7 @@ def _predict_single_image(model, dataloader):
 
 
 def predict(args):
-    batch_size = 4
+    batch_size = 16
     num_workers = 4
 
     model = UNet(1, 1, n=16)
@@ -51,18 +52,22 @@ def predict(args):
         tsfm.MinMaxNorm(-200, 1000)
     ]
 
-    image_id_list = [x for x in os.listdir(args.image_dir) if "nii" in x]
-    image_path_list = [os.path.join(args.image_dir, image_id)
-        for image_id in image_id_list]
+    image_id_list = [x.split("-")[0] for x in os.listdir(args.image_dir)
+        if "nii" in x]
+    image_path_list = [os.path.join(args.image_dir, file)
+        for file in os.listdir(args.image_dir)]
 
+    progress = tqdm(total=len(image_id_list))
     for image_id, image_path in zip(image_id_list, image_path_list):
         dataset = FracNetInferenceDataset(image_path, transforms=transforms)
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
         prediction = _predict_single_image(model, dataloader)
-        pred_path = os.path.join(args.pred_dir, f"{image_id}_pred.nii")
+        pred_path = os.path.join(args.pred_dir, f"{image_id}_pred.nii.gz")
         pred_image = nib.Nifti1Image(prediction, None)
         nib.save(pred_image, pred_path)
+
+        progress.update()
 
 
 if __name__ == "__main__":
@@ -70,11 +75,14 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_dir", required=True,
-        help="The image nii directory.")
-    parser.add_argument("--pred_dir", required=True,
-        help="The directory for saving predictions.")
-    parser.add_argument("--model_path", default=None,
-        help="The PyTorch model weight path.")
+    # parser.add_argument("--image_dir", required=True,
+    #     help="The image nii directory.")
+    # parser.add_argument("--pred_dir", required=True,
+    #     help="The directory for saving predictions.")
+    # parser.add_argument("--model_path", default=None,
+    #     help="The PyTorch model weight path.")
     args = parser.parse_args()
+    args.image_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-images"
+    args.pred_dir = "/mnt/sdb/data/rib_frac/submissions/test_fracnet_code"
+    args.model_path = None
     predict(args)

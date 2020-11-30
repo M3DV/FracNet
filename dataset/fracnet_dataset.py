@@ -176,7 +176,7 @@ class FracNetTrainDataset(Dataset):
 class FracNetInferenceDataset(Dataset):
 
     def __init__(self, image_path, crop_size=64, transforms=None):
-        self.image = nib.load(image_path).get_fdata(np.int16)
+        self.image = nib.load(image_path).get_fdata().astype(np.int16)
         self.crop_size = crop_size
         self.transforms = transforms
         self.centers = self._get_centers()
@@ -217,7 +217,7 @@ class FracNetInferenceDataset(Dataset):
         image = torch.tensor(image[np.newaxis, ...], dtype=torch.float)
 
         return image, center
-    
+
     @staticmethod
     def _collate_fn(samples):
         images = torch.stack([x[0] for x in samples])
@@ -227,4 +227,5 @@ class FracNetInferenceDataset(Dataset):
 
     @staticmethod
     def get_dataloader(dataset, batch_size, num_workers=0):
-        return DataLoader(dataset, batch_size, num_workers=num_workers)
+        return DataLoader(dataset, batch_size, num_workers=num_workers,
+            collate_fn=FracNetInferenceDataset._collate_fn)
