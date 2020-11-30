@@ -10,7 +10,7 @@ For more details, please refer to our paper:
 
 **Deep-learning-assisted detection and segmentation of rib fractures from CT scans: Development and validation of FracNet**
 
-*Liang Jin, [Jiancheng Yang](http://jiancheng-yang.com/), [Kaiming Kuang](http://kaimingkuang.github.io/), [Bingbing Ni](https://scholar.google.com/citations?user=eUbmKwYAAAAJ), Yiyi Gao, Yingli Sun, Pan Gao, Weiling Ma, Mingyu Tan, Hui Kang, Jiajun Chen, Ming Li*
+*Liang Jin\*, [Jiancheng Yang](http://jiancheng-yang.com/)\*, [Kaiming Kuang](http://kaimingkuang.github.io/), [Bingbing Ni](https://scholar.google.com/citations?user=eUbmKwYAAAAJ), Yiyi Gao, Yingli Sun, Pan Gao, Weiling Ma, Mingyu Tan, Hui Kang, Jiajun Chen, Ming Li*
 
 EBioMedicine ([DOI](https://doi.org/10.1016/j.ebiom.2020.103106))
 
