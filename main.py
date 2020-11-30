@@ -1,12 +1,9 @@
-import os
 from functools import partial
-os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3"
 
 import torch.nn as nn
 from fastai.basic_train import Learner
 from fastai.train import ShowGraph
 from fastai.data_block import DataBunch
-from matplotlib import pyplot as plt
 from torch import optim
 
 from dataset.fracnet_dataset import FracNetTrainDataset
