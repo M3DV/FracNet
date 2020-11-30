@@ -40,8 +40,9 @@ def predict(args):
     num_workers = 4
 
     model = UNet(1, 1, n=16)
-    model_weights = torch.load(args.model_path)
-    model.load_state_dict(model_weights)
+    if args.model_path is not None:
+        model_weights = torch.load(args.model_path)
+        model.load_state_dict(model_weights)
     model.eval()
     model = nn.DataParallel(model).cuda()
 
@@ -73,5 +74,7 @@ if __name__ == "__main__":
         help="The image nii directory.")
     parser.add_argument("--pred_dir", required=True,
         help="The directory for saving predictions.")
+    parser.add_argument("--model_path", default=None,
+        help="The PyTorch model weight path.")
     args = parser.parse_args()
     predict(args)
