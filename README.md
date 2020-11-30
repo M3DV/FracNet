@@ -37,6 +37,25 @@ tqdm==4.38.0
 
 ## Usage
 
+### Install Required Packages
+First install required packages in [`requirements.txt`](requirements.txt) using pip:
+```bash
+pip install -r requirements.txt
+```
+or Anaconda:
+```bash
+conda install --yes --file requirements.txt
+```
+To evaluate model predictions, the official package of [the official RibFrac-Challenge repository](https://github.com/M3DV/RibFrac-Challenge) is needed. First clone the repository:
+```bash
+git clone git@github.com:M3DV/RibFrac-Challenge.git <repo_dir>
+```
+Then change the working directory and install the package:
+```bash
+cd <repo_dir>
+python setup.py install
+```
+
 ### Download the Dataset
 We collect a large-scale rib fracture CT dataset, named RibFrac Dataset as a benchmark for developping algorithms on rib fracture detection, segmentation and classification. You may access the public part of RibFrac dataset via [RibFrac Challenge](https://ribfrac.grand-challenge.org/dataset/) website, which was an official MICCAI 2020 challenge.
 
@@ -49,5 +68,5 @@ python main.py --train_image_dir <training_image_directory> --train_label_dir <t
 ### Evaluation
 To evaluate your prediction, run the following in command line:
 ```bash
-python evaluation.py --gt_dir <gt_directory> -pred_dir <prediction_directory>
+python -m ribfrac.evaluation --gt_dir <gt_directory> -pred_dir <prediction_directory>
 ```
