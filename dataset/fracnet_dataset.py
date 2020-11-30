@@ -1,8 +1,5 @@
 import os
-import random
 from itertools import product
-from numbers import Number
-from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -11,7 +8,7 @@ from skimage.measure import regionprops
 from torch.utils.data import DataLoader, Dataset
 
 
-class FracNetNiiDataset(Dataset):
+class FracNetTrainDataset(Dataset):
 
     def __init__(self, image_dir, label_dir=None, crop_size=64,
             transforms=None, num_samples=4, train=True):
@@ -173,4 +170,61 @@ class FracNetNiiDataset(Dataset):
     @staticmethod
     def get_dataloader(dataset, batch_size, shuffle=False, num_workers=0):
         return DataLoader(dataset, batch_size, shuffle,
-            num_workers=num_workers, collate_fn=FracNetNiiDataset.collate_fn)
+            num_workers=num_workers, collate_fn=FracNetTrainDataset.collate_fn)
+
+
+class FracNetInferenceDataset(Dataset):
+
+    def __init__(self, image_path, crop_size=64, transforms=None):
+        self.image = nib.load(image_path).get_fdata(np.int16)
+        self.crop_size = crop_size
+        self.transforms = transforms
+        self.centers = self._get_centers()
+
+    def _get_centers(self):
+        dim_coords = [list(range(0, dim, self.crop_size // 2))[1:-1]\
+            + [dim - self.crop_size // 2] for dim in self.image.shape]
+        centers = list(product(*dim_coords))
+
+        return centers
+
+    def __len__(self):
+        return len(self.centers)
+
+    def _crop_patch(self, idx):
+        center_z, center_y, center_x = self.centers[idx]
+        patch = self.image[
+            center_z - self.crop_size // 2:center_z + self.crop_size // 2,
+            center_y - self.crop_size // 2:center_y + self.crop_size // 2,
+            center_x - self.crop_size // 2:center_x + self.crop_size // 2,
+        ]
+
+        return patch
+
+    def _apply_transforms(self, image):
+        for t in self.transforms:
+            image = t(image)
+
+        return image
+
+    def __getitem__(self, idx):
+        image = self._crop_patch(idx)
+        center = self.centers[idx]
+
+        if self.transforms is not None:
+            image = self._apply_transforms(image)
+
+        image = torch.tensor(image[np.newaxis, ...], dtype=torch.float)
+
+        return image, center
+    
+    @staticmethod
+    def _collate_fn(samples):
+        images = torch.stack([x[0] for x in samples])
+        centers = [x[1] for x in samples]
+
+        return images, centers
+
+    @staticmethod
+    def get_dataloader(dataset, batch_size, num_workers=0):
+        return DataLoader(dataset, batch_size, num_workers=num_workers)

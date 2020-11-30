@@ -9,7 +9,7 @@ from fastai.data_block import DataBunch
 from matplotlib import pyplot as plt
 from torch import optim
 
-from dataset.fracnet_dataset import FracNetNiiDataset
+from dataset.fracnet_dataset import FracNetTrainDataset
 from dataset import transforms as tsfm
 from utils.metrics import dice, recall, precision, fbeta_score
 from model.unet import UNet
