@@ -46,7 +46,7 @@ or Anaconda:
 ```bash
 conda install --yes --file requirements.txt
 ```
-To evaluate model predictions, the official package of [the official RibFrac-Challenge repository](https://github.com/M3DV/RibFrac-Challenge) is needed. First clone the repository:
+To evaluate model predictions, [the official RibFrac-Challenge repository](https://github.com/M3DV/RibFrac-Challenge) is needed. First clone the repository:
 ```bash
 git clone git@github.com:M3DV/RibFrac-Challenge.git <repo_dir>
 ```
