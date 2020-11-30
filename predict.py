@@ -75,14 +75,11 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--image_dir", required=True,
-    #     help="The image nii directory.")
-    # parser.add_argument("--pred_dir", required=True,
-    #     help="The directory for saving predictions.")
-    # parser.add_argument("--model_path", default=None,
-    #     help="The PyTorch model weight path.")
+    parser.add_argument("--image_dir", required=True,
+        help="The image nii directory.")
+    parser.add_argument("--pred_dir", required=True,
+        help="The directory for saving predictions.")
+    parser.add_argument("--model_path", default=None,
+        help="The PyTorch model weight path.")
     args = parser.parse_args()
-    args.image_dir = "/mnt/sdb/data/rib_frac/ribfrac_challenge_val/ribfrac-val-images"
-    args.pred_dir = "/mnt/sdb/data/rib_frac/submissions/test_fracnet_code"
-    args.model_path = None
     predict(args)
