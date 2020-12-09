@@ -36,6 +36,14 @@ def _predict_single_image(model, dataloader):
     return pred
 
 
+def _post_process(pred):
+    # remove spine false positive
+    spine_x_range = (pred.shape[2] // 2 - 40, pred.shape[2] // 2 + 40)
+    pred[..., spine_x_range[0]:spine_x_range[1]] = 0
+
+    return pred
+
+
 def predict(args):
     batch_size = 16
     num_workers = 4
@@ -63,6 +71,7 @@ def predict(args):
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
         prediction = _predict_single_image(model, dataloader)
+        prediction = _post_process(prediction)
         pred_path = os.path.join(args.pred_dir, f"{image_id}_pred.nii.gz")
         pred_image = nib.Nifti1Image(prediction, None)
         nib.save(pred_image, pred_path)
