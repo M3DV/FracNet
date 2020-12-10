@@ -4,6 +4,7 @@ import nibabel as nib
 import numpy as np
 import torch
 import torch.nn as nn
+from skimage.measure import label
 from tqdm import tqdm
 
 from dataset.fracnet_dataset import FracNetInferenceDataset
@@ -21,25 +22,43 @@ def _predict_single_image(model, dataloader):
             output = model(images).sigmoid().cpu().numpy().squeeze(axis=1)
 
             for i in range(len(centers)):
-                center_z, center_y, center_x = centers[i]
+                center_x, center_y, center_z = centers[i]
                 cur_pred_patch = pred[
-                    center_z - crop_size // 2:center_z + crop_size // 2,
-                    center_y - crop_size // 2:center_y + crop_size // 2,
                     center_x - crop_size // 2:center_x + crop_size // 2,
+                    center_y - crop_size // 2:center_y + crop_size // 2,
+                    center_z - crop_size // 2:center_z + crop_size // 2
                 ]
                 pred[
-                    center_z - crop_size // 2:center_z + crop_size // 2,
-                    center_y - crop_size // 2:center_y + crop_size // 2,
                     center_x - crop_size // 2:center_x + crop_size // 2,
+                    center_y - crop_size // 2:center_y + crop_size // 2,
+                    center_z - crop_size // 2:center_z + crop_size // 2
                 ] = np.amax((output[i], cur_pred_patch), axis=0)
 
     return pred
 
 
-def _post_process(pred):
+def _get_spine_range(image, bone_thresh):
+    center_x = image.shape[0] // 2
+    bone = image > bone_thresh
+    bone_x_sum = bone.sum(axis=(1, 2))
+    bone_x_regions = label(bone_x_sum > bone_x_sum.mean())
+    for i in range(bone_x_regions.max()):
+        cur_region = bone_x_regions == i
+        if cur_region[center_x]:
+            spine_coords = np.argwhere(cur_region > 0)
+            return spine_coords.min(), spine_coords.max()
+
+    return 256 - 50, 256 + 50
+
+
+def _post_process(pred, image):
     # remove spine false positive
-    spine_x_range = (pred.shape[2] // 2 - 40, pred.shape[2] // 2 + 40)
-    pred[..., spine_x_range[0]:spine_x_range[1]] = 0
+    spine_x_range = _get_spine_range(image, 300)
+    spine_y_range = (image.shape[1] // 2, image.shape[1])
+    pred[
+        spine_x_range[0]:spine_x_range[1],
+        spine_y_range[0]:spine_y_range[1],
+    ] = 0
 
     return pred
 
@@ -71,7 +90,7 @@ def predict(args):
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
         prediction = _predict_single_image(model, dataloader)
-        prediction = _post_process(prediction)
+        prediction = _post_process(prediction, dataset.image)
         pred_path = os.path.join(args.pred_dir, f"{image_id}_pred.nii.gz")
         pred_image = nib.Nifti1Image(prediction, None)
         nib.save(pred_image, pred_path)

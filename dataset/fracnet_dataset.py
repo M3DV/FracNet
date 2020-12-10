@@ -33,19 +33,19 @@ class FracNetTrainDataset(Dataset):
 
     @staticmethod
     def _get_symmetric_neg_centroids(pos_centroids, x_size):
-        sym_neg_centroids = [(z, y, x_size - x) for z, y, x in pos_centroids]
+        sym_neg_centroids = [(x_size - x, y, z) for x, y, z in pos_centroids]
 
         return sym_neg_centroids
 
     @staticmethod
     def _get_spine_neg_centroids(shape, crop_size, num_samples):
-        z_min, z_max = crop_size // 2, shape[0] - crop_size // 2
+        x_min, x_max = shape[0] // 2 - 40, shape[0] // 2 + 40
         y_min, y_max = 300, 400
-        x_min, x_max = shape[-1] // 2 - 40, shape[-1] // 2 + 40
+        z_min, z_max = crop_size // 2, shape[2] - crop_size // 2
         spine_neg_centroids = [(
-            np.random.randint(z_min, z_max),
+            np.random.randint(x_min, x_max),
             np.random.randint(y_min, y_max),
-            np.random.randint(x_min, x_max)
+            np.random.randint(z_min, z_max)
         ) for _ in range(num_samples)]
 
         return spine_neg_centroids
@@ -53,7 +53,7 @@ class FracNetTrainDataset(Dataset):
     def _get_neg_centroids(self, pos_centroids, image_shape):
         num_pos = len(pos_centroids)
         sym_neg_centroids = self._get_symmetric_neg_centroids(
-            pos_centroids, image_shape[-1])
+            pos_centroids, image_shape[0])
 
         if num_pos < self.num_samples // 2:
             spine_neg_centroids = self._get_spine_neg_centroids(image_shape,
@@ -152,10 +152,10 @@ class FracNetTrainDataset(Dataset):
             image_rois = [self._apply_transforms(image_roi)
                 for image_roi in image_rois]
 
-        image_rois = torch.tensor(np.stack(image_rois)[:, np.newaxis, ...],
+        image_rois = torch.tensor(np.stack(image_rois)[:, np.newaxis],
             dtype=torch.float)
         label_rois = (np.stack(label_rois) > 0).astype(np.float)
-        label_rois = torch.tensor(label_rois[:, np.newaxis, ...],
+        label_rois = torch.tensor(label_rois[:, np.newaxis],
             dtype=torch.float)
 
         return image_rois, label_rois
@@ -192,11 +192,11 @@ class FracNetInferenceDataset(Dataset):
         return len(self.centers)
 
     def _crop_patch(self, idx):
-        center_z, center_y, center_x = self.centers[idx]
+        center_x, center_y, center_z = self.centers[idx]
         patch = self.image[
-            center_z - self.crop_size // 2:center_z + self.crop_size // 2,
-            center_y - self.crop_size // 2:center_y + self.crop_size // 2,
             center_x - self.crop_size // 2:center_x + self.crop_size // 2,
+            center_y - self.crop_size // 2:center_y + self.crop_size // 2,
+            center_z - self.crop_size // 2:center_z + self.crop_size // 2
         ]
 
         return patch
@@ -214,7 +214,7 @@ class FracNetInferenceDataset(Dataset):
         if self.transforms is not None:
             image = self._apply_transforms(image)
 
-        image = torch.tensor(image[np.newaxis, ...], dtype=torch.float)
+        image = torch.tensor(image[np.newaxis], dtype=torch.float)
 
         return image, center
 
