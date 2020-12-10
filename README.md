@@ -77,5 +77,5 @@ python predict.py --image_dir <image_directory> --pred_dir <predition_directory>
 ### Evaluation
 To evaluate your prediction, run the following in command line:
 ```bash
-python -m ribfrac.evaluation --gt_dir <gt_directory> -pred_dir <prediction_directory>
+python -m ribfrac.evaluation --gt_dir <gt_directory> -pred_dir <prediction_directory> --clf False
 ```
