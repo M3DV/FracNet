@@ -64,11 +64,7 @@ def _remove_spine_fp(pred, image, bone_thresh):
             spine_x_range = spine_coords.min(), spine_coords.max()
             break
 
-    spine_y_range = (image.shape[1] // 2, image.shape[1])
-    pred[
-        spine_x_range[0]:spine_x_range[1],
-        spine_y_range[0]:spine_y_range[1],
-    ] = 0
+    pred[spine_x_range[0]:spine_x_range[1]] = 0
 
     return pred
 
@@ -149,7 +145,6 @@ def predict(args):
         nib.save(pred_image, pred_path)
 
         progress.update()
-        break
 
     pred_info = pd.concat(pred_info_list, ignore_index=True)
     pred_info.to_csv(os.path.join(args.pred_dir, "pred_info.csv"),
