@@ -6,11 +6,17 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from skimage.measure import label, regionprops
+from skimage.morphology import remove_small_objects
 from tqdm import tqdm
 
 from dataset.fracnet_dataset import FracNetInferenceDataset
 from dataset import transforms as tsfm
 from model.unet import UNet
+
+
+prob_thresh = 0.1
+bone_thresh = 300
+size_thresh = 100
 
 
 def _predict_single_image(model, dataloader):
@@ -38,23 +44,26 @@ def _predict_single_image(model, dataloader):
     return pred
 
 
-def _get_spine_range(image, bone_thresh):
+def _remove_low_probs(pred, prob_thresh):
+    pred = np.where(pred > prob_thresh, pred, 0)
+
+    return pred
+
+
+def _remove_spine_fp(pred, image, bone_thresh):
     center_x = image.shape[0] // 2
     bone = image > bone_thresh
     bone_x_sum = bone.sum(axis=(1, 2))
     bone_x_regions = label(bone_x_sum > bone_x_sum.mean())
+
+    spine_x_range = (256 - 50, 256 + 50)
     for i in range(bone_x_regions.max()):
         cur_region = bone_x_regions == i
         if cur_region[center_x]:
             spine_coords = np.argwhere(cur_region > 0)
-            return spine_coords.min(), spine_coords.max()
+            spine_x_range = spine_coords.min(), spine_coords.max()
+            break
 
-    return 256 - 50, 256 + 50
-
-
-def _post_process(pred, image):
-    # remove spine false positive
-    spine_x_range = _get_spine_range(image, 300)
     spine_y_range = (image.shape[1] // 2, image.shape[1])
     pred[
         spine_x_range[0]:spine_x_range[1],
@@ -64,8 +73,29 @@ def _post_process(pred, image):
     return pred
 
 
-def _make_submission_files(pred, image_id, affine, prob_thresh=0.1):
-    pred_label = label(pred > prob_thresh)
+def _remove_small_objects(pred, size_thresh):
+    pred_bin = pred > 0
+    pred_bin = remove_small_objects(pred_bin, size_thresh)
+    pred = np.where(pred_bin, pred, 0)
+
+    return pred
+
+
+def _post_process(pred, image, prob_thresh, bone_thresh, size_thresh):
+    # remove connected regions with low confidence
+    pred = _remove_low_probs(pred, prob_thresh)
+
+    # remove spine false positives
+    pred = _remove_spine_fp(pred, image, bone_thresh)
+
+    # remove small connected regions
+    pred = _remove_small_objects(pred, size_thresh)
+
+    return pred
+
+
+def _make_submission_files(pred, image_id, affine):
+    pred_label = label(pred > 0).astype(np.int16)
     pred_regions = regionprops(pred_label, pred)
     pred_index = [0] + [region.label for region in pred_regions]
     pred_proba = [0.0] + [region.mean_intensity for region in pred_regions]
@@ -87,10 +117,10 @@ def predict(args):
     num_workers = 4
 
     model = UNet(1, 1, n=16)
+    model.eval()
     if args.model_path is not None:
         model_weights = torch.load(args.model_path)
         model.load_state_dict(model_weights)
-    model.eval()
     model = nn.DataParallel(model).cuda()
 
     transforms = [
@@ -98,8 +128,8 @@ def predict(args):
         tsfm.MinMaxNorm(-200, 1000)
     ]
 
-    image_id_list = [x.split("-")[0] for x in os.listdir(args.image_dir)
-        if "nii" in x]
+    image_id_list = sorted([x.split("-")[0]
+        for x in os.listdir(args.image_dir) if "nii" in x])
     image_path_list = [os.path.join(args.image_dir, file)
         for file in os.listdir(args.image_dir)]
 
@@ -110,7 +140,8 @@ def predict(args):
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
         pred_arr = _predict_single_image(model, dataloader)
-        pred_arr = _post_process(pred_arr, dataset.image)
+        pred_arr = _post_process(pred_arr, dataset.image, prob_thresh,
+            bone_thresh, size_thresh)
         pred_image, pred_info = _make_submission_files(pred_arr, image_id,
             dataset.image_affine)
         pred_info_list.append(pred_info)
@@ -118,6 +149,7 @@ def predict(args):
         nib.save(pred_image, pred_path)
 
         progress.update()
+        break
 
     pred_info = pd.concat(pred_info_list, ignore_index=True)
     pred_info.to_csv(os.path.join(args.pred_dir, "pred_info.csv"),
