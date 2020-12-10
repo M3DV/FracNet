@@ -66,6 +66,9 @@ def main(args):
         ]
     )
 
+    if args.save_model:
+        torch.save(model.module.state_dict(), "./model_weights.pth")
+
 
 if __name__ == "__main__":
     import argparse
@@ -80,6 +83,8 @@ if __name__ == "__main__":
         help="The validation image nii directory.")
     parser.add_argument("--val_label_dir", required=True,
         help="The validation label nii directory.")
+    parser.add_argument("--save_model", default=False,
+        help="Whether to save the trained model.")
     args = parser.parse_args()
 
     main(args)
