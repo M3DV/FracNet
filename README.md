@@ -60,7 +60,7 @@ python setup.py install
 ```
 
 ### Download the Dataset
-We collect a large-scale rib fracture CT dataset, named RibFrac Dataset as a benchmark for developping algorithms on rib fracture detection, segmentation and classification. You may access the public part of RibFrac dataset via [RibFrac Challenge](https://ribfrac.grand-challenge.org/dataset/) website after one-click free registeration, which was an official MICCAI 2020 challenge. There is sight difference with the public dataset in this paper and that in the RibFrac Challenge, please refer to the [RibFrac Challenge](https://ribfrac.grand-challenge.org/tasks/) website for details.
+We collect a large-scale rib fracture CT dataset, named RibFrac Dataset as a benchmark for developping algorithms on rib fracture detection, segmentation and classification. You may access the public part of RibFrac dataset via [RibFrac Challenge](https://ribfrac.grand-challenge.org/dataset/) website after one-click free registeration, which was an official MICCAI 2020 challenge. There is slight difference with the public dataset in this paper and that in the RibFrac Challenge, please refer to the [RibFrac Challenge](https://ribfrac.grand-challenge.org/tasks/) website for details.
 
 ### Training
 To train the FracNet model, run the following in command line:
