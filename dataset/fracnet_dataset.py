@@ -176,7 +176,9 @@ class FracNetTrainDataset(Dataset):
 class FracNetInferenceDataset(Dataset):
 
     def __init__(self, image_path, crop_size=64, transforms=None):
-        self.image = nib.load(image_path).get_fdata().astype(np.int16)
+        image = nib.load(image_path)
+        self.image_affine = image.affine
+        self.image = image.get_fdata().astype(np.int16)
         self.crop_size = crop_size
         self.transforms = transforms
         self.centers = self._get_centers()

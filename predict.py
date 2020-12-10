@@ -2,9 +2,10 @@ import os
 
 import nibabel as nib
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
-from skimage.measure import label
+from skimage.measure import label, regionprops
 from tqdm import tqdm
 
 from dataset.fracnet_dataset import FracNetInferenceDataset
@@ -63,6 +64,24 @@ def _post_process(pred, image):
     return pred
 
 
+def _make_submission_files(pred, image_id, affine, prob_thresh=0.1):
+    pred_label = label(pred > prob_thresh)
+    pred_regions = regionprops(pred_label, pred)
+    pred_index = [0] + [region.label for region in pred_regions]
+    pred_proba = [0.0] + [region.mean_intensity for region in pred_regions]
+    # placeholder for label class since classifaction isn't included
+    pred_label_code = [0] + [1] * int(pred_label.max())
+    pred_image = nib.Nifti1Image(pred_label, affine)
+    pred_info = pd.DataFrame({
+        "public_id": [image_id] * len(pred_index),
+        "label_id": pred_index,
+        "confidence": pred_proba,
+        "label_code": pred_label_code
+    })
+
+    return pred_image, pred_info
+
+
 def predict(args):
     batch_size = 16
     num_workers = 4
@@ -85,17 +104,24 @@ def predict(args):
         for file in os.listdir(args.image_dir)]
 
     progress = tqdm(total=len(image_id_list))
+    pred_info_list = []
     for image_id, image_path in zip(image_id_list, image_path_list):
         dataset = FracNetInferenceDataset(image_path, transforms=transforms)
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
-        prediction = _predict_single_image(model, dataloader)
-        prediction = _post_process(prediction, dataset.image)
+        pred_arr = _predict_single_image(model, dataloader)
+        pred_arr = _post_process(pred_arr, dataset.image)
+        pred_image, pred_info = _make_submission_files(pred_arr, image_id,
+            dataset.image_affine)
+        pred_info_list.append(pred_info)
         pred_path = os.path.join(args.pred_dir, f"{image_id}_pred.nii.gz")
-        pred_image = nib.Nifti1Image(prediction, None)
         nib.save(pred_image, pred_path)
 
         progress.update()
+
+    pred_info = pd.concat(pred_info_list, ignore_index=True)
+    pred_info.to_csv(os.path.join(args.pred_dir, "pred_info.csv"),
+        index=False)
 
 
 if __name__ == "__main__":
