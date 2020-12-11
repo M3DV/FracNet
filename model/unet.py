@@ -3,16 +3,17 @@ import torch.nn as nn
 
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, num_classes, n=16):
+    def __init__(self, in_channels, num_classes, first_out_channels=16):
         super().__init__()
-        self.first = ConvBlock(in_channels, n)
-        self.down1 = Down(n, 2 * n)
-        self.down2 = Down(2 * n, 4 * n)
-        self.down3 = Down(4 * n, 8 * n)
-        self.up1   = Up(8 * n, 4 * n)
-        self.up2   = Up(4 * n, 2 * n)
-        self.up3   = Up(2 * n, n)
-        self.final = nn.Conv3d(n, num_classes, 1)
+        self.first = ConvBlock(in_channels, first_out_channels)
+        in_channels = first_out_channels
+        self.down1 = Down(in_channels, 2 * in_channels)
+        self.down2 = Down(2 * in_channels, 4 * in_channels)
+        self.down3 = Down(4 * in_channels, 8 * in_channels)
+        self.up1   = Up(8 * in_channels, 4 * in_channels)
+        self.up2   = Up(4 * in_channels, 2 * in_channels)
+        self.up3   = Up(2 * in_channels, in_channels)
+        self.final = nn.Conv3d(in_channels, num_classes, 1)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
