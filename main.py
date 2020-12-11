@@ -29,7 +29,7 @@ def main(args):
     precision_partial = partial(precision, thresh=thresh)
     fbeta_score_partial = partial(fbeta_score, thresh=thresh)
 
-    model = UNet(1, 1, n=16)
+    model = UNet(1, 1, first_out_channels=16)
     model = nn.DataParallel(model.cuda())
 
     transforms = [

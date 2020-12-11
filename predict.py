@@ -112,7 +112,7 @@ def predict(args):
     batch_size = 16
     num_workers = 4
 
-    model = UNet(1, 1, n=16)
+    model = UNet(1, 1, first_out_channels=16)
     model.eval()
     if args.model_path is not None:
         model_weights = torch.load(args.model_path)
