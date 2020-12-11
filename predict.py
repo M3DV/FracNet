@@ -124,10 +124,10 @@ def predict(args):
         tsfm.MinMaxNorm(-200, 1000)
     ]
 
-    image_id_list = sorted([x.split("-")[0]
-        for x in os.listdir(args.image_dir) if "nii" in x])
-    image_path_list = [os.path.join(args.image_dir, file)
-        for file in os.listdir(args.image_dir)]
+    image_path_list = sorted([os.path.join(args.image_dir, file)
+        for file in os.listdir(args.image_dir) if "nii" in file])
+    image_id_list = [os.path.basename(path).split("-")[0]
+        for path in image_path_list]
 
     progress = tqdm(total=len(image_id_list))
     pred_info_list = []
