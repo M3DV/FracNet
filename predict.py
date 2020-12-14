@@ -42,7 +42,7 @@ def _remove_spine_fp(pred, image, bone_thresh):
         max_region.bbox[1]:max_region.bbox[3]
     ] = max_region.convex_image > 0
 
-    return np.where(image_spine, 0, pred)
+    return np.where(image_spine[..., np.newaxis], 0, pred)
 
 
 def _remove_small_objects(pred, size_thresh):
