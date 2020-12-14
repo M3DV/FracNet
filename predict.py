@@ -15,36 +15,6 @@ from dataset import transforms as tsfm
 from model.unet import UNet
 
 
-prob_thresh = 0.1
-bone_thresh = 300
-size_thresh = 100
-
-
-def _predict_single_image(model, dataloader):
-    pred = np.zeros(dataloader.dataset.image.shape)
-    crop_size = dataloader.dataset.crop_size
-    with torch.no_grad():
-        for _, sample in enumerate(dataloader):
-            images, centers = sample
-            images = images.cuda()
-            output = model(images).sigmoid().cpu().numpy().squeeze(axis=1)
-
-            for i in range(len(centers)):
-                center_x, center_y, center_z = centers[i]
-                cur_pred_patch = pred[
-                    center_x - crop_size // 2:center_x + crop_size // 2,
-                    center_y - crop_size // 2:center_y + crop_size // 2,
-                    center_z - crop_size // 2:center_z + crop_size // 2
-                ]
-                pred[
-                    center_x - crop_size // 2:center_x + crop_size // 2,
-                    center_y - crop_size // 2:center_y + crop_size // 2,
-                    center_z - crop_size // 2:center_z + crop_size // 2
-                ] = np.amax((output[i], cur_pred_patch), axis=0)
-
-    return pred
-
-
 def _remove_low_probs(pred, prob_thresh):
     pred = np.where(pred > prob_thresh, pred, 0)
 
@@ -96,6 +66,35 @@ def _post_process(pred, image, prob_thresh, bone_thresh, size_thresh):
     return pred
 
 
+def _predict_single_image(model, dataloader, prob_thresh, bone_thresh,
+        size_thresh):
+    pred = np.zeros(dataloader.dataset.image.shape)
+    crop_size = dataloader.dataset.crop_size
+    with torch.no_grad():
+        for _, sample in enumerate(dataloader):
+            images, centers = sample
+            images = images.cuda()
+            output = model(images).sigmoid().cpu().numpy().squeeze(axis=1)
+
+            for i in range(len(centers)):
+                center_x, center_y, center_z = centers[i]
+                cur_pred_patch = pred[
+                    center_x - crop_size // 2:center_x + crop_size // 2,
+                    center_y - crop_size // 2:center_y + crop_size // 2,
+                    center_z - crop_size // 2:center_z + crop_size // 2
+                ]
+                pred[
+                    center_x - crop_size // 2:center_x + crop_size // 2,
+                    center_y - crop_size // 2:center_y + crop_size // 2,
+                    center_z - crop_size // 2:center_z + crop_size // 2
+                ] = np.amax((output[i], cur_pred_patch), axis=0)
+
+    pred = _post_process(pred, dataloader.dataset.image, prob_thresh,
+        bone_thresh, size_thresh)
+
+    return pred
+
+
 def _make_submission_files(pred, image_id, affine):
     pred_label = label(pred > 0).astype(np.int16)
     pred_regions = regionprops(pred_label, pred)
@@ -141,9 +140,8 @@ def predict(args):
         dataset = FracNetInferenceDataset(image_path, transforms=transforms)
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
-        pred_arr = _predict_single_image(model, dataloader)
-        pred_arr = _post_process(pred_arr, dataset.image, prob_thresh,
-            bone_thresh, size_thresh)
+        pred_arr = _predict_single_image(model, dataloader, args.prob_thresh,
+            args.bone_thresh, args.size_thresh)
         pred_image, pred_info = _make_submission_files(pred_arr, image_id,
             dataset.image_affine)
         pred_info_list.append(pred_info)
@@ -161,6 +159,10 @@ if __name__ == "__main__":
     import argparse
 
 
+    prob_thresh = 0.1
+    bone_thresh = 300
+    size_thresh = 100
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--image_dir", required=True,
         help="The image nii directory.")
@@ -168,5 +170,11 @@ if __name__ == "__main__":
         help="The directory for saving predictions.")
     parser.add_argument("--model_path", default=None,
         help="The PyTorch model weight path.")
+    parser.add_argument("--prob_thresh", default=0.1,
+        help="Prediction probability threshold.")
+    parser.add_argument("--bone_thresh", default=300,
+        help="Bone binarization threshold.")
+    parser.add_argument("--size_thresh", default=100,
+        help="Prediction size threshold.")
     args = parser.parse_args()
     predict(args)
