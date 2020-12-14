@@ -19,9 +19,9 @@ EBioMedicine ([DOI](https://doi.org/10.1016/j.ebiom.2020.103106))
 
 ## Code Structure
 * FracNet/
-    * [`dataset/`](dataset/): PyTorch dataset and transforms.
-    * [`models/`](models/): PyTorch 3D UNet model and losses.
-    * [`utils/`](/utils): Utility functions.
+    * [`dataset/`](./dataset): PyTorch dataset and transforms.
+    * [`models/`](./models): PyTorch 3D UNet model and losses.
+    * [`utils/`](./utils): Utility functions.
     * [`main.py`](main.py): Training script.
 
 ## Requirements
@@ -65,13 +65,13 @@ We collect a large-scale rib fracture CT dataset, named RibFrac Dataset as a ben
 ### Training
 To train the FracNet model, run the following in command line:
 ```bash
-python main.py --train_image_dir <training_image_directory> --train_label_dir <training_label_directory> --val_image_dir <validation_image_directory> --val_label_dir <validation_label_directory>
+python -m main --train_image_dir <training_image_directory> --train_label_dir <training_label_directory> --val_image_dir <validation_image_directory> --val_label_dir <validation_label_directory>
 ```
 
 ### Prediction
 To generate prediction, run the following in command line:
 ```bash
-python predict.py --image_dir <image_directory> --pred_dir <predition_directory> --model_path <model_weight_path>
+python -m predict --image_dir <image_directory> --pred_dir <predition_directory> --model_path <model_weight_path>
 ```
 
 ### Evaluation

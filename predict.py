@@ -10,9 +10,9 @@ from skimage.measure import label, regionprops
 from skimage.morphology import disk, remove_small_objects
 from tqdm import tqdm
 
-from dataset.fracnet_dataset import FracNetInferenceDataset
-from dataset import transforms as tsfm
-from model.unet import UNet
+from .dataset.fracnet_dataset import FracNetInferenceDataset
+from .dataset import transforms as tsfm
+from .model.unet import UNet
 
 
 def _remove_low_probs(pred, prob_thresh):
