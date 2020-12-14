@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from scipy.ndimage import binary_closing, binary_opening, median_filter
 from skimage.measure import label, regionprops
-from skimage.morphology import remove_small_objects
+from skimage.morphology import disk, remove_small_objects
 from tqdm import tqdm
 
 from dataset.fracnet_dataset import FracNetInferenceDataset
@@ -51,22 +52,24 @@ def _remove_low_probs(pred, prob_thresh):
 
 
 def _remove_spine_fp(pred, image, bone_thresh):
-    center_x = image.shape[0] // 2
-    bone = image > bone_thresh
-    bone_x_sum = bone.sum(axis=(1, 2))
-    bone_x_regions = label(bone_x_sum > bone_x_sum.mean())
+    image_bone = image > bone_thresh
+    image_bone_2d = image_bone.sum(axis=-1)
+    image_bone_2d = median_filter(image_bone_2d, 10)
+    image_spine = (image_bone_2d > image_bone_2d.max() // 3)
+    kernel = disk(7)
+    image_spine = binary_opening(image_spine, kernel)
+    image_spine = binary_closing(image_spine, kernel)
+    image_spine_label = label(image_spine)
+    max_area = 0
+    max_idx = 0
 
-    spine_x_range = (256 - 50, 256 + 50)
-    for i in range(bone_x_regions.max()):
-        cur_region = bone_x_regions == i
-        if cur_region[center_x]:
-            spine_coords = np.argwhere(cur_region > 0)
-            spine_x_range = spine_coords.min(), spine_coords.max()
-            break
+    for region in regionprops(image_spine_label):
+        if region.area > max_area:
+            max_idx = region.label
+            max_area = region.area
+    image_spine = image_spine_label == max_idx
 
-    pred[spine_x_range[0]:spine_x_range[1]] = 0
-
-    return pred
+    return np.where(image_spine, 0, pred)
 
 
 def _remove_small_objects(pred, size_thresh):
