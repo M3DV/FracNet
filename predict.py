@@ -61,13 +61,16 @@ def _remove_spine_fp(pred, image, bone_thresh):
     image_spine = binary_closing(image_spine, kernel)
     image_spine_label = label(image_spine)
     max_area = 0
-    max_idx = 0
 
     for region in regionprops(image_spine_label):
         if region.area > max_area:
-            max_idx = region.label
-            max_area = region.area
-    image_spine = image_spine_label == max_idx
+            max_region = region
+            max_area = max_region.area
+    image_spine = np.zeros_like(image_spine)
+    image_spine[
+        max_region.bbox[0]:max_region.bbox[2],
+        max_region.bbox[1]:max_region.bbox[3]
+    ] = max_region.convex_image > 0
 
     return np.where(image_spine, 0, pred)
 
