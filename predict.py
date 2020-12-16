@@ -16,102 +16,6 @@ from .dataset import transforms as tsfm
 from .model.unet import UNet
 
 
-def _get_max_area(imbin):
-    labs = label(imbin)
-    rpps = sorted(regionprops(labs), key=lambda p: p.area)
-    mask = labs == rpps[-1].label
-
-    return mask
-
-
-def _get_thorax_mask(image):
-    mask = image > -200
-    mask = [ndimage.binary_fill_holes(x) for x in mask]
-    mask = [_get_max_area(x) for x in mask]
-    mask = [mask[i] * (image[i] < -400) for i in range(len(mask))]
-    mask = np.stack([ndimage.binary_fill_holes(x) for x in mask])
-    return mask
-
-
-def _rescale(arr, target_shape, interpolation=0):
-    target_shape = target_shape[::-1]
-    arr = sitk.GetImageFromArray(arr.astype(np.uint8))
-    old_spacing = arr.GetSpacing()
-    old_shape = arr.GetSize()
-    target_spacing = tuple([old_spacing[i] * old_shape[i] / target_shape[i]
-        for i in range(len(target_shape))])
-
-    resample = sitk.ResampleImageFilter()
-    interpolator = sitk.sitkLinear if interpolation == 1\
-        else sitk.sitkNearestNeighbor
-    resample.SetInterpolator(interpolator)
-    resample.SetOutputSpacing(target_spacing)
-    resample.SetSize(target_shape)
-    new_arr = resample.Execute(arr)
-
-    return sitk.GetArrayFromImage(new_arr).astype(np.bool)
-
-
-def _get_lung_mask(image, shrink_ratio):
-    mask = _get_thorax_mask(image)
-    old_shape = image.shape
-    target_shape = tuple([round(dim * shrink_ratio) for dim in old_shape])
-    mask = _rescale(mask, target_shape)
-
-    labs = label(mask)
-    rpps = sorted(regionprops(labs), key=lambda p: p.area)
-    mask = labs == rpps[-1].label
-
-    if rpps[-2].area > rpps[-1].area / 2:
-        mask = mask | (labs == rpps[-2].label)
-
-    xpix = mask.sum((0, 1))
-    labs = label(xpix < xpix.mean())
-    xcrg = np.where(labs == labs[len(labs) // 2])[0]
-
-    tube = []
-    for chil in mask:
-        chil = ndimage.binary_erosion(chil, disk(3))
-        labs = label(chil)
-        rpps = regionprops(labs)
-        for p in rpps:
-            x = int(p.centroid[-1])
-            labs[labs == p.label] = 0 if x not in xcrg else p.label
-        tube.append(ndimage.binary_dilation(labs > 0, disk(3)))
-    tube = np.stack(tube)
-
-    mask = mask * (tube == 0)
-    mask = np.stack([ndimage.binary_closing(x, disk(10)) for x in mask])
-    mask = _get_max_area(mask)
-
-    return mask
-
-
-def _get_lung_contour(image, shrink_ratio):
-    old_shape = image.shape
-    lung_mask = _get_lung_mask(image, shrink_ratio)
-    lung_contour = np.logical_xor(ndimage.maximum_filter(lung_mask, 10),
-        lung_mask)
-    lung_contour = _rescale(lung_contour, old_shape)
-
-    return lung_contour
-
-
-def _remove_non_rib_pred(pred, image, shrink_ratio):
-    # transpose the image and prediction from xyz to zyx
-    pred = pred.transpose(2, 1, 0)
-    image = image.transpose(2, 1, 0)
-
-    lung_contour = _get_lung_contour(image, shrink_ratio)
-    pred = np.where(lung_contour, pred, 0)
-
-    # transpose them back
-    pred = pred.transpose(2, 1, 0)
-    image = image.transpose(2, 1, 0)
-
-    return pred
-
-
 def _remove_low_probs(pred, prob_thresh):
     pred = np.where(pred > prob_thresh, pred, 0)
 
@@ -151,8 +55,6 @@ def _remove_small_objects(pred, size_thresh):
 
 
 def _post_process(pred, image, prob_thresh, bone_thresh, size_thresh):
-    # remove non-rib predictions
-    pred = _remove_non_rib_pred(pred, image, 0.25)
 
     # remove connected regions with low confidence
     pred = _remove_low_probs(pred, prob_thresh)
