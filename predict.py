@@ -98,8 +98,16 @@ def _get_lung_contour(image, shrink_ratio):
 
 
 def _remove_non_rib_pred(pred, image, shrink_ratio):
+    # transpose the image and prediction from xyz to zyx
+    pred = pred.transpose(2, 1, 0)
+    image = image.transpose(2, 1, 0)
+
     lung_contour = _get_lung_contour(image, shrink_ratio)
     pred = np.where(lung_contour, pred, 0)
+
+    # transpose them back
+    pred = pred.transpose(2, 1, 0)
+    image = image.transpose(2, 1, 0)
 
     return pred
 
