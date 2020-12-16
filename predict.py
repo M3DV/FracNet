@@ -3,7 +3,6 @@ import os
 import nibabel as nib
 import numpy as np
 import pandas as pd
-import SimpleITK as sitk
 import torch
 import torch.nn as nn
 from scipy import ndimage
