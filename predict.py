@@ -67,8 +67,8 @@ def _post_process(pred, image, prob_thresh, bone_thresh, size_thresh):
     return pred
 
 
-def _predict_single_image(model, dataloader, prob_thresh, bone_thresh,
-        size_thresh):
+def _predict_single_image(model, dataloader, postprocess, prob_thresh,
+        bone_thresh, size_thresh):
     pred = np.zeros(dataloader.dataset.image.shape)
     crop_size = dataloader.dataset.crop_size
     with torch.no_grad():
@@ -91,8 +91,9 @@ def _predict_single_image(model, dataloader, prob_thresh, bone_thresh,
                 ] = np.where(cur_pred_patch > 0, np.mean((output[i],
                     cur_pred_patch), axis=0), 0)
 
-    pred = _post_process(pred, dataloader.dataset.image, prob_thresh,
-        bone_thresh, size_thresh)
+    if postprocess:
+        pred = _post_process(pred, dataloader.dataset.image, prob_thresh,
+            bone_thresh, size_thresh)
 
     return pred
 
@@ -118,6 +119,7 @@ def _make_submission_files(pred, image_id, affine):
 def predict(args):
     batch_size = 16
     num_workers = 4
+    postprocess = True if args.postprocess == "True" else False
 
     model = UNet(1, 1, first_out_channels=16)
     model.eval()
@@ -142,8 +144,8 @@ def predict(args):
         dataset = FracNetInferenceDataset(image_path, transforms=transforms)
         dataloader = FracNetInferenceDataset.get_dataloader(dataset,
             batch_size, num_workers)
-        pred_arr = _predict_single_image(model, dataloader, args.prob_thresh,
-            args.bone_thresh, args.size_thresh)
+        pred_arr = _predict_single_image(model, dataloader, postprocess,
+            args.prob_thresh, args.bone_thresh, args.size_thresh)
         pred_image, pred_info = _make_submission_files(pred_arr, image_id,
             dataset.image_affine)
         pred_info_list.append(pred_info)
@@ -178,5 +180,7 @@ if __name__ == "__main__":
         help="Bone binarization threshold.")
     parser.add_argument("--size_thresh", default=100,
         help="Prediction size threshold.")
+    parser.add_argument("--postprocess", default="True",
+        help="Whether to execute post-processing.")
     args = parser.parse_args()
     predict(args)

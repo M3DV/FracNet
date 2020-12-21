@@ -74,6 +74,8 @@ To generate prediction, run the following in command line:
 python -m predict --image_dir <image_directory> --pred_dir <predition_directory> --model_path <model_weight_path>
 ```
 
+In the [predict.py](predict.py), we adopt a post-processing procedure of [removing low-probability regions](predict.py#L18), [spine regions](predict.py#L24), and [small objects](predict.py#L48). This procedure leads to fewer false negatives. You may also skip the post-processing by setting `--postprocess False` in the command line argument and check the raw output.
+
 ### Evaluation
 To evaluate your prediction, run the following in command line:
 ```bash
