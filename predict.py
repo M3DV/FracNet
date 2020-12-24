@@ -89,7 +89,7 @@ def _predict_single_image(model, dataloader, postprocess, prob_thresh,
                     center_y - crop_size // 2:center_y + crop_size // 2,
                     center_z - crop_size // 2:center_z + crop_size // 2
                 ] = np.where(cur_pred_patch > 0, np.mean((output[i],
-                    cur_pred_patch), axis=0), 0)
+                    cur_pred_patch), axis=0), output[i])
 
     if postprocess:
         pred = _post_process(pred, dataloader.dataset.image, prob_thresh,
