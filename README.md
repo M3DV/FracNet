@@ -76,6 +76,9 @@ python -m predict --image_dir <image_directory> --pred_dir <predition_directory>
 
 In the [predict.py](predict.py), we adopt a post-processing procedure of [removing low-probability regions](predict.py#L18), [spine regions](predict.py#L24), and [small objects](predict.py#L48). This procedure leads to fewer false negatives. You may also skip the post-processing by setting `--postprocess False` in the command line argument and check the raw output.
 
+***Note***: This project aims at a prototype for RibFrac Challenge; However, as the challenge data provider, we would like to avoid unintended data leakage. Therefore, we did not provide full details for the models, including those in both training and inference stages. Nevertheless, it is guaranteed that the performance in the EBioMedicine paper could be reproduced with this one-stage FracNet using 3D UNet as backbone. See more discussion in this [issue](https://github.com/M3DV/FracNet/issues/7).
+
+
 ### Evaluation
 To evaluate your prediction, run the following in command line:
 ```bash
