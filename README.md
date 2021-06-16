@@ -15,7 +15,7 @@ For more details, please refer to our paper:
 
 *Liang Jin\*, [Jiancheng Yang](http://jiancheng-yang.com/)\*, [Kaiming Kuang](http://kaimingkuang.github.io/), [Bingbing Ni](https://scholar.google.com/citations?user=eUbmKwYAAAAJ), Yiyi Gao, Yingli Sun, Pan Gao, Weiling Ma, Mingyu Tan, Hui Kang, Jiajun Chen, Ming Li*
 
-EBioMedicine ([DOI](https://doi.org/10.1016/j.ebiom.2020.103106))
+EBioMedicine, 2020 ([DOI](https://doi.org/10.1016/j.ebiom.2020.103106))
 
 ## Code Structure
 * FracNet/
@@ -76,8 +76,9 @@ python -m predict --image_dir <image_directory> --pred_dir <predition_directory>
 
 In the [predict.py](predict.py), we adopt a post-processing procedure of [removing low-probability regions](predict.py#L18), [spine regions](predict.py#L24), and [small objects](predict.py#L48). This procedure leads to fewer false negatives. You may also skip the post-processing by setting `--postprocess False` in the command line argument and check the raw output.
 
-***Note***: This project aims at a prototype for RibFrac Challenge; However, as the challenge data provider, we would like to avoid unintended data leakage. Therefore, we did not provide full details for the models, including those in both training and inference stages. Nevertheless, it is guaranteed that the performance in the EBioMedicine paper could be reproduced with this one-stage FracNet using 3D UNet as backbone. See more discussion in this [issue](https://github.com/M3DV/FracNet/issues/7).
+***Note 1***: This project aims at a prototype for RibFrac Challenge; However, as the challenge data provider, we would like to avoid unintended data leakage. Therefore, we did **NOT** provide all details for the models, including those in both training and inference stages. Nevertheless, it is guaranteed that the performance in the EBioMedicine'20 paper could be reproduced with this one-stage FracNet using 3D UNet as backbone, but also note that 1) it is trained with challenge data and extra in-house data, 2) there is heavy pre-processing and post-processing (including *rib segmentation*). See more discussion in this [issue](https://github.com/M3DV/FracNet/issues/7).
 
+***Note 2***: Our paper on rib segmentation and centerline extraction has been recently accepted by MICCAI'21. Code and dataset will be available soon, please stay tuned!
 
 ### Evaluation
 To evaluate your prediction, run the following in command line:
