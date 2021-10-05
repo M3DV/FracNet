@@ -1,5 +1,7 @@
 from functools import partial
 
+import torch
+
 import torch.nn as nn
 from fastai.basic_train import Learner
 from fastai.train import ShowGraph
