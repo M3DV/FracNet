@@ -1,6 +1,7 @@
 from functools import partial
 
-import torch.nn as nn
+from torch import save
+
 from fastai.basic_train import Learner
 from fastai.train import ShowGraph
 from fastai.data_block import DataBunch
@@ -67,7 +68,7 @@ def main(args):
     )
 
     if args.save_model:
-        torch.save(model.module.state_dict(), "./model_weights.pth")
+        save(model.module.state_dict(), "./model_weights.pth")
 
 
 if __name__ == "__main__":
