@@ -1,5 +1,9 @@
-from functools import partial
+import os
+import torch
+import argparse
+import torch.nn as nn
 
+from functools import partial
 from torch import save
 
 from fastai.basic_train import Learner
@@ -29,9 +33,10 @@ def main(args):
     recall_partial = partial(recall, thresh=thresh)
     precision_partial = partial(precision, thresh=thresh)
     fbeta_score_partial = partial(fbeta_score, thresh=thresh)
-
+ 
     model = UNet(1, 1, first_out_channels=16)
-    model = nn.DataParallel(model.cuda())
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model.cuda())
 
     transforms = [
         tsfm.Window(-200, 1000),
@@ -72,18 +77,21 @@ def main(args):
 
 
 if __name__ == "__main__":
-    import argparse
-
+    data_directory = os.path.join(os.getcwd(), "data")
+    train_image_dir = os.path.join(data_directory, "train", "ribfrac-train-images")
+    train_label_dir = os.path.join(data_directory, "train", "ribfrac-train-labels")
+    val_image_dir = os.path.join(data_directory, "val", "ribfrac-val-images")
+    val_label_dir = os.path.join(data_directory, "val", "ribfrac-val-labels")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_image_dir", required=True,
-        help="The training image nii directory.")
-    parser.add_argument("--train_label_dir", required=True,
-        help="The training label nii directory.")
-    parser.add_argument("--val_image_dir", required=True,
-        help="The validation image nii directory.")
-    parser.add_argument("--val_label_dir", required=True,
-        help="The validation label nii directory.")
+    parser.add_argument("--train_image_dir",
+        help="The training image nii directory.", default=train_image_dir)
+    parser.add_argument("--train_label_dir",
+        help="The training label nii directory.", default=train_label_dir)
+    parser.add_argument("--val_image_dir",
+        help="The validation image nii directory.", default=val_image_dir)
+    parser.add_argument("--val_label_dir",
+        help="The validation label nii directory.", default=val_label_dir)
     parser.add_argument("--save_model", default=False,
         help="Whether to save the trained model.")
     args = parser.parse_args()
